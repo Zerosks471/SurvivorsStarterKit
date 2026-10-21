@@ -1,0 +1,434 @@
+<title>Godot Survivors Blueprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: single reading column, wide tables scroll inside their own frames. Arena-floor neutrals, XP-gem accent, one color per game, one color per build tier. */
+:root{
+  --bg:#f3f4f8; --surface:#ffffff; --surface-2:#e9ebf3; --line:#d3d7e4;
+  --fg:#1b1e2b; --muted:#5a6078; --accent:#6a3fd6;
+  /* game colors */
+  --g-bro:#c2541b; --g-drg:#a67c00; --g-hot:#b3262e; --g-sou:#7b3fc4; --g-holo:#1f74c9;
+  /* tier colors */
+  --t-mvp:#1d7a46; --t-mvp-bg:#dcf2e5;
+  --t-v1:#1f5fbf; --t-v1-bg:#dde8fb;
+  --t-later:#9a5b00; --t-later-bg:#fbebd2;
+  --t-skip:#a1262f; --t-skip-bg:#f9dfe1;
+  --f-display:"Pixelify Sans", "Courier New", monospace;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12131c; --surface:#1b1d2a; --surface-2:#242738; --line:#33374d;
+  --fg:#e7e9f3; --muted:#9aa0bb; --accent:#a98bff;
+  --g-bro:#f08a4b; --g-drg:#e8bf3a; --g-hot:#f06a70; --g-sou:#b98bf5; --g-holo:#6cb3f5;
+  --t-mvp:#6fd69c; --t-mvp-bg:#173527;
+  --t-v1:#8ab4ff; --t-v1-bg:#1a2a49;
+  --t-later:#f2b45a; --t-later-bg:#3a2a12;
+  --t-skip:#f08890; --t-skip-bg:#3d1a1e;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#12131c; --surface:#1b1d2a; --surface-2:#242738; --line:#33374d;
+  --fg:#e7e9f3; --muted:#9aa0bb; --accent:#a98bff;
+  --g-bro:#f08a4b; --g-drg:#e8bf3a; --g-hot:#f06a70; --g-sou:#b98bf5; --g-holo:#6cb3f5;
+  --t-mvp:#6fd69c; --t-mvp-bg:#173527;
+  --t-v1:#8ab4ff; --t-v1-bg:#1a2a49;
+  --t-later:#f2b45a; --t-later-bg:#3a2a12;
+  --t-skip:#f08890; --t-skip-bg:#3d1a1e;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:40px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:48px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(2rem,5vw,3rem)}
+h2{font-size:1.6rem;display:flex;align-items:baseline;gap:12px}
+h2 .wave{font-family:var(--f-mono);font-size:.78rem;font-weight:600;color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
+h3{font-size:1.15rem}
+p{margin:0;max-width:68ch}
+.lede{color:var(--muted);font-size:1.1rem}
+header{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:16px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.9rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block;flex:none}
+.bro{background:var(--g-bro)}.drg{background:var(--g-drg)}.hot{background:var(--g-hot)}.sou{background:var(--g-sou)}.holo{background:var(--g-holo)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:860px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:none}
+thead th{background:var(--surface-2);font-weight:700;font-size:.82rem;white-space:nowrap}
+thead th .dot{margin-right:6px}
+tbody th{font-weight:600;color:var(--muted);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;background:var(--surface-2)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.col-bro{box-shadow:inset 0 3px 0 var(--g-bro)}.col-drg{box-shadow:inset 0 3px 0 var(--g-drg)}.col-hot{box-shadow:inset 0 3px 0 var(--g-hot)}.col-sou{box-shadow:inset 0 3px 0 var(--g-sou)}.col-holo{box-shadow:inset 0 3px 0 var(--g-holo)}
+.godot{display:inline-block;font-family:var(--f-mono);font-size:.72rem;font-weight:600;padding:1px 6px;border-radius:4px;background:var(--t-mvp-bg);color:var(--t-mvp);margin-left:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.panel ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+.panel li{max-width:none}
+.src{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;letter-spacing:.03em}
+.mvp{background:var(--t-mvp-bg);color:var(--t-mvp)}
+.v1{background:var(--t-v1-bg);color:var(--t-v1)}
+.later{background:var(--t-later-bg);color:var(--t-later)}
+.skip{background:var(--t-skip-bg);color:var(--t-skip)}
+.tier-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.tier-head p{color:var(--muted)}
+.diff{font-family:var(--f-mono);font-size:.8rem;white-space:nowrap}
+.d1{color:var(--t-mvp)}.d2{color:var(--t-later)}.d3{color:var(--t-skip)}
+.feat td:first-child{font-weight:600;min-width:180px}
+.feat td:nth-child(2){white-space:nowrap}
+.note{color:var(--muted);font-size:.86rem}
+.scope{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.scope div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:2px}
+.scope b{font-family:var(--f-display);font-size:1.8rem;line-height:1;color:var(--accent)}
+.scope span{font-size:.88rem;color:var(--muted)}
+.sig{background:var(--surface-2);color:var(--accent);border:1px solid var(--accent)}
+.k-keep{background:var(--t-mvp-bg);color:var(--t-mvp)}
+.k-fix{background:var(--t-later-bg);color:var(--t-later)}
+.k-add{background:var(--t-v1-bg);color:var(--t-v1)}
+.concept{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.concept .pitch{font-family:var(--f-display);font-size:clamp(1.2rem,3vw,1.6rem);line-height:1.3;max-width:40ch;text-wrap:balance}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px}
+.facts div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.facts dt{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.facts dd{margin:0}
+.sigcard{background:var(--surface);border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.sigcard .kit{font-size:.88rem;color:var(--muted)}
+pre{margin:0;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:12px 14px;overflow-x:auto;font-family:var(--f-mono);font-size:.8rem;line-height:1.5;color:var(--fg)}
+.phase td:first-child{font-family:var(--f-mono);font-weight:600;white-space:nowrap;color:var(--accent)}
+.phase td:nth-child(2){font-weight:600;min-width:150px}
+.phase td:last-child{color:var(--muted);min-width:200px}
+.question{border-left:3px solid var(--accent);padding:14px 18px;background:var(--surface);border-radius:0 8px 8px 0}
+footer{font-size:.82rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+footer a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Research brief · 5 games · Oct 2026</div>
+  <h1>Godot Survivors Blueprint</h1>
+  <p class="lede">What the top five survivors-likes do well, where players push back, and the feature list for your own game. Ends with the Echo Crypt concept and a build plan on top of the Survivors Starter Kit.</p>
+  <div class="legend">
+    <span><i class="dot bro"></i>Brotato</span>
+    <span><i class="dot drg"></i>Deep Rock Galactic: Survivor</span>
+    <span><i class="dot hot"></i>Halls of Torment</span>
+    <span><i class="dot sou"></i>Soulstone Survivors</span>
+    <span><i class="dot holo"></i>HoloCure</span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="wave">Wave 1</span>Snapshot</h2>
+  <p>Two of the five run on Godot. Brotato sold over 10 million copies on a $4.99 price.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr>
+      <th></th>
+      <th class="col-bro"><i class="dot bro"></i>Brotato</th>
+      <th class="col-drg"><i class="dot drg"></i>DRG: Survivor</th>
+      <th class="col-hot"><i class="dot hot"></i>Halls of Torment</th>
+      <th class="col-sou"><i class="dot sou"></i>Soulstone</th>
+      <th class="col-holo"><i class="dot holo"></i>HoloCure</th>
+    </tr></thead>
+    <tbody>
+      <tr><th>Engine</th><td>Godot 3.5 <span class="godot">GODOT</span></td><td>Unity</td><td>Godot + C++ <span class="godot">GODOT</span></td><td>Unity</td><td>GameMaker</td></tr>
+      <tr><th>Price</th><td class="num">$4.99</td><td class="num">$12.99</td><td class="num">$4.99–6.66</td><td class="num">$14.99</td><td class="num">Free</td></tr>
+      <tr><th>Steam score</th><td class="num">96% · 32.6k</td><td class="num">87% · 24.1k</td><td class="num">95% · 21.3k</td><td class="num">91% · 12.3k</td><td class="num">99% · 26.6k</td></tr>
+      <tr><th>Sales</th><td class="num">10M+</td><td class="num">1M+</td><td class="num">1M+</td><td class="num">1M+ (claimed)</td><td>500k demo DLs in 4 days</td></tr>
+      <tr><th>Team</th><td>Solo dev</td><td>Small studio</td><td>About 7</td><td>About 12</td><td>Solo + helpers</td></tr>
+      <tr><th>Run length</th><td class="num">Under 30 min · 20 waves</td><td>5 stages, short</td><td class="num">About 30 min</td><td class="num">10–15 min</td><td class="num">20 min</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Wave 2</span>Side-by-side systems</h2>
+  <p>Read across a row to see how each game solves the same problem.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr>
+      <th></th>
+      <th class="col-bro"><i class="dot bro"></i>Brotato</th>
+      <th class="col-drg"><i class="dot drg"></i>DRG: Survivor</th>
+      <th class="col-hot"><i class="dot hot"></i>Halls of Torment</th>
+      <th class="col-sou"><i class="dot sou"></i>Soulstone</th>
+      <th class="col-holo"><i class="dot holo"></i>HoloCure</th>
+    </tr></thead>
+    <tbody>
+      <tr><th>Run shape</th><td>Timed waves (20s → 60s), boss at wave 20</td><td>5 stages, Elite ends each, 30s pod extraction</td><td>One map, Lord fight at 30 min</td><td>Kill counts spawn 5 Lords</td><td>Mini-boss every 2 min, boss every 10, final at 20</td></tr>
+      <tr><th>Aim</th><td>Auto, manual optional</td><td>Auto only</td><td>Auto or manual</td><td>Auto, some skills aimable</td><td>Auto, steerable</td></tr>
+      <tr><th>Weapon slots</th><td class="num">6</td><td class="num">4 (unlock at Lv 5/15/25)</td><td>1 main + abilities from bosses</td><td class="num">About 6 skills</td><td class="num">6 weapons + 6 items</td></tr>
+      <tr><th>Level-up</th><td>Stat picks, then shop</td><td>Cards: weapon, tag, stat</td><td>1 of 4 traits, stats only</td><td>1 of 3, banked</td><td>1 of 4, weapons/items/stats</td></tr>
+      <tr><th>RNG control</th><td>Reroll (rising cost), free locks</td><td>Reroll in shop</td><td>Potions: reroll, banish, force</td><td>Reroll, banish</td><td>Reroll, hold, eliminate, ban list</td></tr>
+      <tr><th>Synergy engine</th><td>Weapon-class set bonuses (2–6)</td><td>Damage-type and family tags</td><td>Class trait pools + gear</td><td>Element + shape tags, Skill Chains</td><td>Two-weapon collabs</td></tr>
+      <tr><th>Power spikes</th><td>Merge 2 same-tier weapons</td><td>Overclocks at Lv 6/12/18</td><td>Gear drops from bosses</td><td>Ascension god form</td><td>Collabs, anvil upgrades</td></tr>
+      <tr><th>Between rounds</th><td>Shop: 4 offers</td><td>Shop: Gold + Nitra</td><td>None</td><td>None</td><td>Anvils, Holozon boxes</td></tr>
+      <tr><th>Active skill</th><td>None</td><td>Mining</td><td>None</td><td>Dash</td><td>Special on cooldown</td></tr>
+      <tr><th>Characters</th><td>62 rule-changers</td><td>4 classes × 3 mods</td><td>11+ classes</td><td class="num">22</td><td class="num">47</td></tr>
+      <tr><th>Meta</th><td>Unlocks only</td><td>Stat buys + gear (grindy)</td><td>Keep 1 item per run (Well), blessings</td><td>Skill trees, forging</td><td>Shop upgrades, Holo House</td></tr>
+      <tr><th>Difficulty</th><td>Danger 0–5</td><td>5 hazard levels per biome</td><td>Adaptive Agony meter</td><td>Stackable curses</td><td>Hard stages, Marketing upgrade</td></tr>
+      <tr><th>Unique hook</th><td>Short waves + shop economy</td><td>Mineable walls</td><td>Diablo look + loot extraction</td><td>Screen-filling 3D chaos</td><td>Fusions, free</td></tr>
+      <tr><th>Top complaint</th><td>Repetitive over time</td><td>Grind, slow unlocks</td><td>Crashes, long runs</td><td>Visual clutter</td><td>Filler minigames</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Wave 3</span>The patterns</h2>
+  <div class="grid">
+    <div class="panel">
+      <h3>All five do this</h3>
+      <ul>
+        <li>Move only. Weapons fire on their own.</li>
+        <li>Pick 1 of 3–4 upgrades on each level.</li>
+        <li>Give players a way to fight the RNG.</li>
+        <li>Tags or sets that reward stacking a theme.</li>
+        <li>Boss beats at fixed points in the run.</li>
+        <li>Unlock new characters through goals.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>What players praise</h3>
+      <ul>
+        <li>"One more run" pull from short runs.</li>
+        <li>Characters that play differently, not just stat swaps.</li>
+        <li>Finding a build that breaks the game.</li>
+        <li>Low price for the hours played.</li>
+        <li>Runs on Steam Deck and low-end PCs.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>What players punish</h3>
+      <ul>
+        <li>Slowdown with big hordes. Four of five games get this complaint.</li>
+        <li>Your own effects hiding enemy attacks.</li>
+        <li>Grindy permanent upgrades.</li>
+        <li>Runs over 20 minutes.</li>
+        <li>Crashes that wipe a run.</li>
+        <li>Side content that feels like filler.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Wave 4</span>Your feature list</h2>
+  <p>Each row names the game it comes from and how hard it is to build in Godot.</p>
+  <div class="legend">
+    <span class="diff d1">● Easy</span><span class="diff d2">●● Medium</span><span class="diff d3">●●● Hard</span>
+  </div>
+
+  <div class="tier-head"><span class="pill mvp">MVP</span><p>First playable. Prove the loop is fun with one map.</p></div>
+  <div class="scroll">
+  <table class="feat">
+    <thead><tr><th>Feature</th><th>From</th><th>Build</th><th>Godot notes</th></tr></thead>
+    <tbody>
+      <tr><td>Move + auto-fire, optional mouse aim</td><td><span class="src"><i class="dot hot"></i><i class="dot bro"></i></span></td><td class="diff d1">●</td><td>The kit's player is already a CharacterBody3D. Add an aim mode toggle.</td></tr>
+      <tr><td>15-minute run, boss every 3 min, final boss</td><td><span class="src"><i class="dot holo"></i><i class="dot sou"></i></span></td><td class="diff d1">●</td><td>A run timer drives a wave table stored as a Resource.</td></tr>
+      <tr><td>5 enemy types: chaser, shooter, charger, bomber, healer</td><td><span class="src"><i class="dot holo"></i><i class="dot bro"></i></span></td><td class="diff d2">●●</td><td>Chargers and bombers flash a warning before they hit.</td></tr>
+      <tr><td>Spawn formations: ring, wall, horde rush</td><td><span class="src"><i class="dot holo"></i></span></td><td class="diff d1">●</td><td>Each formation is a function that returns spawn points.</td></tr>
+      <tr><td>XP gems with magnet and auto-merge</td><td><span class="src"><i class="dot sou"></i></span></td><td class="diff d1">●</td><td>Merge nearby gems into one big gem. Soulstone lags from loose gems.</td></tr>
+      <tr><td>Level-up: pick 1 of 3, with reroll and banish</td><td><span class="src"><i class="dot sou"></i><i class="dot holo"></i><i class="dot hot"></i></span></td><td class="diff d1">●</td><td>Pause the tree, show the card UI, unpause on pick.</td></tr>
+      <tr><td>6 weapon slots, weapons level 1–7</td><td><span class="src"><i class="dot holo"></i><i class="dot bro"></i></span></td><td class="diff d1">●</td><td>Each weapon is a .tres file with a stats array per level.</td></tr>
+      <tr><td>Tags on every weapon, set bonus at 2+ matching</td><td><span class="src"><i class="dot drg"></i><i class="dot sou"></i><i class="dot bro"></i></span></td><td class="diff d2">●●</td><td>Count tags on each pick. Bonuses come from data, not code.</td></tr>
+      <tr><td>Bullet and enemy pooling, spatial hash for hits</td><td><span class="src"><i class="dot hot"></i></span></td><td class="diff d2">●●</td><td>Skip one physics body per enemy. Test 500 enemies on week one.</td></tr>
+      <tr><td>Debug spawner: jump to any wave, add any item</td><td><span class="src"><i class="dot bro"></i></span></td><td class="diff d1">●</td><td>Brotato ships a DebugService. You need this to balance.</td></tr>
+      <tr><td>Effects opacity slider, telegraphs on top layer</td><td><span class="src"><i class="dot sou"></i><i class="dot hot"></i></span></td><td class="diff d1">●</td><td>The kit is 3D. Draw enemy warnings as floor Decals that render above your spell effects.</td></tr>
+      <tr><td>Damage numbers toggle</td><td><span class="src"><i class="dot holo"></i></span></td><td class="diff d1">●</td><td>Cap how many show at once.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tier-head"><span class="pill v1">v1</span><p>Depth. What turns a fun loop into a game people replay.</p></div>
+  <div class="scroll">
+  <table class="feat">
+    <thead><tr><th>Feature</th><th>From</th><th>Build</th><th>Godot notes</th></tr></thead>
+    <tbody>
+      <tr><td>Shop between boss beats, reroll cost rises, free locks</td><td><span class="src"><i class="dot bro"></i><i class="dot drg"></i></span></td><td class="diff d1">●</td><td>Brotato's best idea per line of code. One state machine: Fight, Shop, Fight.</td></tr>
+      <tr><td>Weapon fusion: two maxed weapons become one</td><td><span class="src"><i class="dot holo"></i></span></td><td class="diff d1">●</td><td>A lookup table of weapon A + weapon B = result. Frees a slot.</td></tr>
+      <tr><td>Weapon branch picks at Lv 3 and Lv 6</td><td><span class="src"><i class="dot drg"></i></span></td><td class="diff d2">●●</td><td>Like DRG overclocks. Give them early so weapons never feel weak for long.</td></tr>
+      <tr><td>4 rule-changing characters</td><td><span class="src"><i class="dot bro"></i><i class="dot sou"></i></span></td><td class="diff d2">●●</td><td>Example: one weapon only, or no weapons and explode on hit. Needs a modifier hook system.</td></tr>
+      <tr><td>Active dash with cooldown</td><td><span class="src"><i class="dot sou"></i><i class="dot holo"></i></span></td><td class="diff d1">●</td><td>Gives skill input. Add i-frames during the dash.</td></tr>
+      <tr><td>Loot runners that flee and drop chests</td><td><span class="src"><i class="dot bro"></i><i class="dot holo"></i></span></td><td class="diff d1">●</td><td>A chase decision in the middle of the swarm.</td></tr>
+      <tr><td>Danger levels 0–5</td><td><span class="src"><i class="dot bro"></i></span></td><td class="diff d1">●</td><td>Each level multiplies enemy HP and damage and adds an elite wave.</td></tr>
+      <tr><td>Keep one item per run</td><td><span class="src"><i class="dot hot"></i></span></td><td class="diff d2">●●</td><td>Halls of Torment's Well. Meta progress with no grind.</td></tr>
+      <tr><td>Unlocks only, no permanent stat grind</td><td><span class="src"><i class="dot bro"></i></span></td><td class="diff d1">●</td><td>Grind is the top complaint for DRG and Soulstone.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tier-head"><span class="pill later">Later</span><p>Stretch goals once v1 is stable.</p></div>
+  <div class="scroll">
+  <table class="feat">
+    <thead><tr><th>Feature</th><th>From</th><th>Build</th><th>Godot notes</th></tr></thead>
+    <tbody>
+      <tr><td>Adaptive difficulty meter</td><td><span class="src"><i class="dot hot"></i></span></td><td class="diff d2">●●</td><td>Fast kills raise it, enemy pileups lower it. One variable scales spawns, HP, and XP.</td></tr>
+      <tr><td>Mineable walls for cover and chokepoints</td><td><span class="src"><i class="dot drg"></i></span></td><td class="diff d3">●●●</td><td>In 3D, use a GridMap with HP per cell. Keep a 2D AStarGrid2D underneath for pathing so breaking a wall stays cheap.</td></tr>
+      <tr><td>Extraction timer at stage end</td><td><span class="src"><i class="dot drg"></i></span></td><td class="diff d1">●</td><td>30 seconds to reach the pod. Adds a tense finish.</td></tr>
+      <tr><td>Endless mode</td><td><span class="src"><i class="dot bro"></i><i class="dot sou"></i></span></td><td class="diff d1">●</td><td>Plan big number formats early if HP scales by 10x.</td></tr>
+      <tr><td>Gear slots dropped by bosses</td><td><span class="src"><i class="dot hot"></i></span></td><td class="diff d2">●●</td><td>Pairs with the keep-one-item system.</td></tr>
+      <tr><td>Local co-op</td><td><span class="src"><i class="dot bro"></i></span></td><td class="diff d3">●●●</td><td>Brotato added it 2 years after launch. Design input handling for 2 players from the start.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tier-head"><span class="pill skip">Skip</span><p>Things the research says to leave out.</p></div>
+  <div class="scroll">
+  <table class="feat">
+    <thead><tr><th>Feature</th><th>From</th><th>Why skip</th><th></th></tr></thead>
+    <tbody>
+      <tr><td>Gacha character unlocks</td><td><span class="src"><i class="dot holo"></i></span></td><td colspan="2">Duplicate pulls are a top HoloCure complaint.</td></tr>
+      <tr><td>Side minigames (fishing, farming)</td><td><span class="src"><i class="dot holo"></i></span></td><td colspan="2">Rated as filler. The highest-weighted HoloCure complaint.</td></tr>
+      <tr><td>1000+ trait tiers</td><td><span class="src"><i class="dot hot"></i></span></td><td colspan="2">Too much to balance for one person.</td></tr>
+      <tr><td>Uncapped screen-filling effects</td><td><span class="src"><i class="dot sou"></i></span></td><td colspan="2">Soulstone's top complaint is not seeing your own character.</td></tr>
+      <tr><td>30-minute runs</td><td><span class="src"><i class="dot hot"></i></span></td><td colspan="2">Players call Halls of Torment runs too long.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Wave 5</span>MVP content scope</h2>
+  <p>Brotato launched Early Access as one person. You do not need 62 characters to ship. Start here:</p>
+  <div class="scope">
+    <div><b>1</b><span>Map</span></div>
+    <div><b>3</b><span>Characters</span></div>
+    <div><b>8</b><span>Weapons</span></div>
+    <div><b>12</b><span>Passive items</span></div>
+    <div><b>5</b><span>Enemy types</span></div>
+    <div><b>2</b><span>Bosses</span></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Wave 6</span>Concept: Echo Crypt</h2>
+  <div class="concept">
+    <span class="pill sig" style="align-self:flex-start">Working title</span>
+    <p class="pitch">The crypt learns how you fight. Your rites fire when you act. When you fall, you become the crypt's next warden.</p>
+    <dl class="facts">
+      <div><dt>Setting</dt><dd>A living crypt full of skeletons. The starter kit already ships KayKit dungeon and skeleton art.</dd></div>
+      <div><dt>You play</dt><dd>A warden-hunter who fights with rites, spells bound to actions.</dd></div>
+      <div><dt>Run</dt><dd>15 minutes. A boss every 3 minutes. Your Echo shows up at 9:00.</dd></div>
+      <div><dt>Feel</dt><dd>Dark loot, closest to Halls of Torment. The kit's art points this way.</dd></div>
+      <div><dt>View</dt><dd>3D, top-down camera, from the kit.</dd></div>
+      <div><dt>Stack</dt><dd>Godot 4.6 .NET, C#, Jolt physics.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Wave 7</span>Signature features</h2>
+  <p>The three features that set Echo Crypt apart. None of the five games you researched do these.</p>
+  <div class="grid">
+    <div class="sigcard">
+      <span class="pill sig" style="align-self:flex-start">Signature 1</span>
+      <h3>The Crypt Learns</h3>
+      <p>The game tracks your damage by tag. Each level-up, the crypt gains resistance to your top tag, up to 50%. You have to branch out or push through.</p>
+      <p class="kit">Kit head start: every upgrade card already pairs a player buff with an enemy buff. You swap the random enemy pick for a counter-pick.</p>
+<pre>// On level-up, counter the player's top tag
+var top = _damageByTag.MaxBy(kv =&gt; kv.Value).Key;
+_resist[top] = Mathf.Min(_resist[top] + 0.15f, 0.5f);
+// Card shows: "You: Fire Rite +1 | Crypt: Fire resist 30%"</pre>
+    </div>
+    <div class="sigcard">
+      <span class="pill sig" style="align-self:flex-start">Signature 2</span>
+      <h3>Rites</h3>
+      <p>Each rite has a trigger, an effect, and a tag. A Bone Nova fires on dash. A Blood Ring fires when you get hit. A Frost Lance fires after you stand still for 2 seconds.</p>
+      <p class="kit">Kit head start: the 4 existing spells (shooting, lifesteal, floating sphere, spirit water) become the first 4 effects.</p>
+<pre>public enum RiteTrigger { Timer, Dash, Hurt, StandStill, KillStreak }
+public enum RiteTag { Bone, Blood, Frost, Spirit, Fire }
+
+[GlobalClass]
+public partial class RiteDefinition : Resource {
+  [Export] public RiteTrigger Trigger;
+  [Export] public float TriggerValue;   // seconds or kills
+  [Export] public RiteTag Tag;
+  [Export] public PackedScene Effect;   // bolt, nova, orbit, zone
+  [Export] public float[] DamageByLevel;
+}</pre>
+    </div>
+    <div class="sigcard">
+      <span class="pill sig" style="align-self:flex-start">Signature 3</span>
+      <h3>Your Echo</h3>
+      <p>When you die, the game saves your build. Next run, at 9:00, your Echo spawns as a boss using your rites against you. Kill it and you keep one of its rites to start your next run.</p>
+      <p class="kit">Kit head start: reuse the boss prefab. Attach your saved rites with the enemy team flag.</p>
+<pre>// On death: save the build
+var echo = new EchoSave(character, rites, survivedSeconds);
+using var f = FileAccess.Open("user://echo.json", FileAccess.ModeFlags.Write);
+f.StoreString(JsonSerializer.Serialize(echo));</pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Wave 8</span>Starter kit audit</h2>
+  <p>DarkRewar's Survivors Starter Kit. MIT licence, about 1,100 lines of C#, last updated April 2026. Here's what you keep, fix, and add.</p>
+  <div class="scroll">
+  <table class="feat">
+    <thead><tr><th>Part</th><th>Status</th><th>What it means for you</th></tr></thead>
+    <tbody>
+      <tr><td>Player movement + camera</td><td><span class="pill k-keep">Keep</span></td><td>CharacterBody3D with WASD and arrow keys. Ready to use.</td></tr>
+      <tr><td>4 spells</td><td><span class="pill k-keep">Keep</span></td><td>They become the first 4 rite effects.</td></tr>
+      <tr><td>5 enemies + skeleton art</td><td><span class="pill k-keep">Keep</span></td><td>Minion, Warrior, Archer, Mage, Boss. KayKit and Kenney assets included.</td></tr>
+      <tr><td>Paired upgrade cards</td><td><span class="pill k-keep">Keep</span></td><td>Player buff + enemy buff on every card. This is the base for The Crypt Learns.</td></tr>
+      <tr><td>Upgrades as .tres Resources</td><td><span class="pill k-keep">Keep</span></td><td>Data-driven start. Extend it to rites.</td></tr>
+      <tr><td>200-enemy limit</td><td><span class="pill k-fix">Fix</span></td><td>The README says FPS drops past 200. Target 500.</td></tr>
+      <tr><td>Bullets</td><td><span class="pill k-fix">Fix</span></td><td>A new RigidBody3D is created every shot. Pool them.</td></tr>
+      <tr><td>Nearest enemy search</td><td><span class="pill k-fix">Fix</span></td><td>Sorts every enemy on every shot. Use a spatial grid.</td></tr>
+      <tr><td>Enemy updates</td><td><span class="pill k-fix">Fix</span></td><td>Each enemy runs its own process, LookAt, and timer. Move them into one manager loop.</td></tr>
+      <tr><td>Upgrade code</td><td><span class="pill k-fix">Fix</span></td><td>A big enum switch. Adding one spell means editing 3 files. Replace with RiteDefinition.</td></tr>
+      <tr><td>Hard-coded node paths</td><td><span class="pill k-fix">Fix</span></td><td>Paths like /root/MainScene/HUD break when you add a menu. Use signals.</td></tr>
+      <tr><td>Twitch vote leftovers</td><td><span class="pill k-fix">Fix</span></td><td>A 3-second delay after each pick and username labels. Remove them.</td></tr>
+      <tr><td>XP on level-up</td><td><span class="pill k-fix">Fix</span></td><td>Extra XP resets to 0. Carry it over.</td></tr>
+      <tr><td>Text</td><td><span class="pill k-fix">Fix</span></td><td>Upgrade names are in French. Translate to English.</td></tr>
+      <tr><td>Death + game over</td><td><span class="pill k-add">Add</span></td><td>None in the kit. HP hits 0 and play continues.</td></tr>
+      <tr><td>XP gems, dash, reroll, banish</td><td><span class="pill k-add">Add</span></td><td>XP is given right on kill. No gems, no dash, no reroll.</td></tr>
+      <tr><td>Boss timing</td><td><span class="pill k-add">Add</span></td><td>Bosses only spawn from a random enemy card or the B debug key. Add a schedule.</td></tr>
+      <tr><td>Bomb enemy</td><td><span class="pill k-add">Add</span></td><td>The EnemyBomb type exists but does nothing yet.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="wave">Boss</span>Build plan</h2>
+  <p>Part-time pace. Each phase ends with a check you can play.</p>
+  <div class="scroll">
+  <table class="phase">
+    <thead><tr><th>When</th><th>Phase</th><th>Work</th><th>Done when</th></tr></thead>
+    <tbody>
+      <tr><td>Day 1</td><td>Set up</td><td>Install Godot 4.6 .NET. Fork the kit to your GitHub. Open it twice, since the README says the first open can crash. Translate the text.</td><td>The kit runs and you can level up.</td></tr>
+      <tr><td>Wk 1–2</td><td>Make it fast</td><td>Pool bullets. Move enemies from one manager loop. Add a spatial grid for nearest enemy and hits. Cut skeleton animation for far enemies.</td><td>500 enemies at 60 FPS, using the kit's stress-test spawn line.</td></tr>
+      <tr><td>Wk 3</td><td>Make it data-driven</td><td>Add RiteDefinition. Auto-load every .tres in a folder. Replace the enum switch. Swap node paths for signals.</td><td>A new rite needs only a new .tres file.</td></tr>
+      <tr><td>Wk 4–5</td><td>Core loop</td><td>Death and game over. XP gems with magnet and merge. Carry-over XP. Reroll and banish. Dash. Bosses at 3, 6, 12 minutes, final at 15.</td><td>A full 15-minute run you can win or lose.</td></tr>
+      <tr><td>Wk 6–7</td><td>Rites</td><td>Trigger system. 4 kit spells become effects. Build 8 rites. Add tag set bonuses.</td><td>Two runs with different rites play differently.</td></tr>
+      <tr><td>Wk 8</td><td>The Crypt Learns</td><td>Damage-by-tag tracker. Counter-pick enemy card. 50% resist cap. Card shows both sides.</td><td>A one-tag build feels pressure by minute 10.</td></tr>
+      <tr><td>Wk 9</td><td>Your Echo</td><td>Save build on death. Echo boss at 9:00. Reward: keep one of its rites.</td><td>You fight your last build and recognize it.</td></tr>
+      <tr><td>Wk 10–12</td><td>Content + polish</td><td>3 characters, 12 items, charger and bomber with floor warnings, effects slider, debug spawner.</td><td>5 friends play it. Track where they quit.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">The kit uses C#, so heavy enemy logic already runs faster than GDScript. Halls of Torment moved its hot paths to C++ for the same reason.</p>
+</section>
+
+<section>
+  <div class="question">
+    <h3>Your call</h3>
+    <p>The kit's dungeon art pushes Echo Crypt toward dark loot like Halls of Torment. Do you want to keep that look, or swap the art for something else before you build content?</p>
+  </div>
+</section>
+
+<footer>
+  <div>Sources: Steam store pages, game wikis (wiki.gg, fandom), Wikipedia, PC Gamer, GamingOnLinux, VaporLens review analysis, Godot showcase, Godotfest 2025 talk on Halls of Torment. Figures as of Oct 2026.</div>
+  <div><a href="https://godotengine.org/showcase/brotato/">Brotato on Godot showcase</a> · <a href="https://media.ccc.de/v/godotfest2025-a-peek-under-the-hood-technical-learnings-from-halls-of-torment">Halls of Torment tech talk</a> · <a href="https://github.com/DarkRewar/SurvivorsStarterKit">Survivors Starter Kit</a></div>
+</footer>
+
+</div>
