@@ -5,6 +5,18 @@ public partial class DamageLabelManager : Control
 {
     public const uint InitialQueue = 50;
 
+    /// <summary>Most damage numbers on screen at once. Extra hits skip their number.</summary>
+    public const int MaxDisplayedLabels = 40;
+
+    // One shared style instead of a new LabelSettings per hit
+    private static readonly LabelSettings DamageStyle = new()
+    {
+        FontColor = new Color(1, 0, 0),
+        FontSize = 30,
+        OutlineSize = 4,
+        OutlineColor = new Color(0, 0, 0),
+    };
+
     private readonly Queue<Label> _queue = new();
 
     public readonly List<Label> _displayedLabels = new();
@@ -36,13 +48,7 @@ public partial class DamageLabelManager : Control
     public Label GetLabel()
     {
         var label = _queue.Count == 0 ? new Label() { ProcessMode = ProcessModeEnum.Always } : _queue.Dequeue();
-        label.LabelSettings = new LabelSettings()
-        {
-            FontColor = new Color(1, 0, 0),
-            FontSize = 30,
-            OutlineSize = 4,
-            OutlineColor = new Color(0, 0, 0),
-        };
+        label.LabelSettings = DamageStyle;
         label.Modulate = new Color(1, 1, 1, 1);
         _displayedLabels.Add(label);
         AddChild(label);
@@ -58,6 +64,8 @@ public partial class DamageLabelManager : Control
 
     public void OnEnemyHit(Enemy enemy, int damages)
     {
+        if (_displayedLabels.Count >= MaxDisplayedLabels) return;
+
         var label = GetLabel();
         label.Text = damages.ToString();
 

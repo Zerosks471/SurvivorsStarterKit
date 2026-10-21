@@ -28,10 +28,20 @@ public partial class FloatingSphereAttack : Node3D, IUpgradable
     private PackedScene _spherePrefab;
     private List<Area3D> _spheres = new();
     private Timer _timer;
+    private GameManager _gameManager;
+    private float _sphereRadius = 0.5f;
+    private bool _spheresVisible = true;
+
+    // Enemies each sphere touched last frame. A hit lands when an enemy first
+    // touches a sphere, the same rule the old body_entered signal used.
+    private readonly List<HashSet<Enemy>> _touching = new();
+    private readonly List<Enemy> _hits = new();
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
+        _gameManager = GetNode<GameManager>("/root/GameManager");
+
         foreach (int i in Enumerable.Range(0, (int)InitialSpheres))
             AddSphere();
 
@@ -41,16 +51,27 @@ public partial class FloatingSphereAttack : Node3D, IUpgradable
         _timer.Start();
     }
 
-    private void OnBodyEntered(Node body)
-    {
-        if (body is not Enemy enemy) return;
-        enemy.TakeDamages(TotalDamages);
-    }
 
     // Called every frame. 'delta' is the elapsed time since the previous frame.
     public override void _PhysicsProcess(double delta)
     {
         RotateY((float)delta * RotationSpeed);
+
+        if (!_spheresVisible) return;
+
+        for (int i = 0; i < _spheres.Count; i++)
+        {
+            var touching = _touching[i];
+            _hits.Clear();
+            _gameManager.GetEnemiesInRadius(_spheres[i].GlobalPosition, _sphereRadius, _hits);
+
+            foreach (var enemy in _hits)
+                if (!touching.Contains(enemy))
+                    enemy.TakeDamages(TotalDamages);
+
+            touching.Clear();
+            foreach (var enemy in _hits) touching.Add(enemy);
+        }
 
         //if (_rb.GetContactCount() == 0) return;
         //foreach (var contact in _rb.GetCollidingBodies())
@@ -63,9 +84,15 @@ public partial class FloatingSphereAttack : Node3D, IUpgradable
     private void AddSphere()
     {
         Area3D area = _spherePrefab.Instantiate<Area3D>();
-        area.BodyEntered += OnBodyEntered;
         AddChild(area);
+
+        // The Area3D only supplies the sphere size now. Hits come from the enemy grid.
+        area.Monitoring = false;
+        area.Monitorable = false;
+        _sphereRadius = WeaponShapes.WorldRadius(area, _sphereRadius);
+
         _spheres.Add(area);
+        _touching.Add(new HashSet<Enemy>());
 
         RepositionSpheres();
     }
@@ -92,6 +119,7 @@ public partial class FloatingSphereAttack : Node3D, IUpgradable
 
     private void ShowSpheres()
     {
+        _spheresVisible = true;
         foreach (var area in _spheres)
         {
             area.GetNode<GpuParticles3D>("Particles").Restart();
@@ -103,6 +131,8 @@ public partial class FloatingSphereAttack : Node3D, IUpgradable
 
     private void HideSpheres()
     {
+        _spheresVisible = false;
+        foreach (var touching in _touching) touching.Clear();
         foreach (var area in _spheres)
         {
             area.GetNode<GpuParticles3D>("Particles").Emitting = false;

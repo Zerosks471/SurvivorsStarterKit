@@ -1,4 +1,4 @@
-﻿using Godot;
+using Godot;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,6 +14,10 @@ internal class EnemyManager
     private readonly Dictionary<EnemyClass, PackedScene> _enemyPrefabs;
     private readonly List<Enemy> _enemies = new();
     public List<Enemy> Enemies => _enemies;
+
+    // Dead enemies wait here, hidden, to be reused. Creating a new skeleton
+    // enemy costs about 8 ms, so reuse avoids a hitch on every spawn.
+    private readonly Dictionary<EnemyClass, Stack<Enemy>> _pools = new();
 
     // BONUSES
     private List<EnemyClass> _enemyClasses = new() { EnemyClass.Minion };
@@ -35,31 +39,57 @@ internal class EnemyManager
         };
     }
 
-    public void _PhysicsProcess(double delta)
-    {
-        foreach (var enemy in Enemies.Where(enemy => !enemy.GetTree().Paused))
-        {
-            var playerPos = _gameManager.Player.GlobalPosition;
-            var direction = (playerPos - enemy.GlobalPosition).LimitLength();
+    private readonly EnemyGrid _grid = new(4f);
 
-            // enemy.LinearVelocity = direction * enemy.MovementSpeed;
-        }
+    /// <summary>Moves every enemy and rebuilds the spatial grid. Called once per physics frame.</summary>
+    public void Tick(double delta)
+    {
+        if (_gameManager.Player == null) return;
+
+        var playerPos = _gameManager.Player.GlobalPosition;
+        float dt = (float)delta;
+
+        // Index loop: no LINQ allocations. Enemies never die during this loop.
+        for (int i = 0; i < _enemies.Count; i++)
+            _enemies[i].Tick(dt, playerPos);
+
+        _grid.Rebuild(_enemies);
     }
+
+    internal Enemy GetNearestEnemy(Vector3 origin, float maxRange) => _grid.FindNearest(origin, maxRange);
+
+    internal Enemy GetEnemyInRadius(Vector3 origin, float radius) => _grid.FindFirstInRadius(origin, radius);
+
+    internal void GetEnemiesInRadius(Vector3 origin, float radius, List<Enemy> results) => _grid.CollectInRadius(origin, radius, results);
 
     internal Enemy SpawnEnemy() => SpawnEnemy(_enemyClasses[GD.RandRange(0, _enemyClasses.Count - 1)]);
 
     internal Enemy SpawnEnemy(EnemyClass enemyClass)
     {
+        bool isNew = !_pools.TryGetValue(enemyClass, out var pool) || pool.Count == 0;
+        var enemy = isNew ? CreateEnemy(enemyClass) : pool.Pop();
+
+        enemy.Activate(
+            GetRandomPos(),
+            enemy.BaseLifepoints * _gameManager.GetMaxEnemyLifepoints() + _lifepointsBonus,
+            enemy.BaseDamages + _damageBonus,
+            enemy.BaseMovementSpeed + _movespeedBonus);
+
+        if (isNew) _gameManager.GetNode("/root/MainScene").AddChild(enemy);
+        _enemies.Add(enemy);
+        return enemy;
+    }
+
+    private Enemy CreateEnemy(EnemyClass enemyClass)
+    {
         var enemy = _enemyPrefabs[enemyClass].Instantiate<Enemy>();
         enemy.Name = enemyClass.ToString();
-        enemy.Lifepoints = enemy.Lifepoints * _gameManager.GetMaxEnemyLifepoints() + _lifepointsBonus;
-        enemy.Damages += _damageBonus;
-        enemy.MovementSpeed += _movespeedBonus;
-        enemy.Position = GetRandomPos();
-        enemy.TreeExiting += () => KillEnemy(enemy);
-        _gameManager.GetNode("/root/MainScene").AddChild(enemy);
-        _enemies.Add(enemy);
-        enemy.Connect(Enemy.SignalName.OnEnemyHit, Callable.From<Enemy, int>(_gameManager.EnemyHit));
+        enemy.Class = enemyClass;
+        enemy.BaseLifepoints = enemy.Lifepoints;
+        enemy.BaseDamages = enemy.Damages;
+        enemy.BaseMovementSpeed = enemy.MovementSpeed;
+        enemy.OnDied = KillEnemy;
+        enemy.TreeExiting += () => ForgetEnemy(enemy);
         return enemy;
     }
 
@@ -67,8 +97,20 @@ internal class EnemyManager
 
     private void KillEnemy(Enemy enemy)
     {
-        _enemies.Remove(enemy);
+        if (!_enemies.Remove(enemy)) return;
+        enemy.Deactivate();
+
+        if (!_pools.TryGetValue(enemy.Class, out var pool))
+            _pools[enemy.Class] = pool = new Stack<Enemy>();
+        pool.Push(enemy);
+
         _gameManager.EnemyKilled(enemy.Experience);
+    }
+
+    /// <summary>Scene is closing. Drop references without granting XP.</summary>
+    private void ForgetEnemy(Enemy enemy)
+    {
+        _enemies.Remove(enemy);
     }
 
     private Vector3 GetRandomPos() => _gameManager.GetRandomPosAroundPlayer(EnemySpawnRange);

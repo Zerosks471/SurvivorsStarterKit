@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 
 public partial class LifestealAttack : Node3D, IUpgradable
 {
@@ -16,29 +17,36 @@ public partial class LifestealAttack : Node3D, IUpgradable
     public float TotalCooldown => Cooldown + _cooldownBonus;
 
     private Player _player;
+    private GameManager _gameManager;
     private Timer _stealCooldown;
-    private Area3D _area;
+    private float _radius = 4.8f;
+    private readonly List<Enemy> _hits = new();
 
-    // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
         _player = GetParent<Player>();
+        _gameManager = GetNode<GameManager>("/root/GameManager");
         _stealCooldown = GetNode<Timer>("Timer");
         _stealCooldown.WaitTime = 1f / TotalCooldown;
         _stealCooldown.Start();
-        _area = GetNode<Area3D>("Area3D");
+
+        // The Area3D only supplies the zone size now. Hits come from the enemy grid.
+        var area = GetNode<Area3D>("Area3D");
+        _radius = WeaponShapes.WorldRadius(area, _radius);
+        area.Monitoring = false;
+        area.Monitorable = false;
     }
 
-    // Called every frame. 'delta' is the elapsed time since the previous frame.
     public override void _PhysicsProcess(double delta)
     {
         if (_stealCooldown.TimeLeft > 0) return;
 
         _stealCooldown.Start();
-        if (!_area.HasOverlappingBodies()) return;
-        foreach (var body in _area.GetOverlappingBodies())
+
+        _hits.Clear();
+        _gameManager.GetEnemiesInRadius(GlobalPosition, _radius, _hits);
+        foreach (var enemy in _hits)
         {
-            if (body is not Enemy enemy) continue;
             enemy.TakeDamages(TotalDamages);
             _player.Heal(TotalDamages);
         }

@@ -10,6 +10,18 @@ public partial class GameManager : Node
 {
     private const float VoteTime = 30;
 
+    /// <summary>Spawn cap. The original kit stopped at 200 because of physics cost.</summary>
+    public const int MaxEnemies = 500;
+
+    /// <summary>How far weapons look for a target.</summary>
+    public const float TargetSearchRange = 60f;
+
+    // Debug: F3 shows the performance overlay, F4 toggles stress-test spawning
+    private bool _stressTest = false;
+    private bool _f3WasDown = false;
+    private bool _f4WasDown = false;
+    private Label _perfLabel;
+
     public Player Player;
 
     private double _enemySpawnTimeLeft = 1;
@@ -54,11 +66,58 @@ public partial class GameManager : Node
 
         LoadPowerups();
         LoadEnemyPowerups();
+
+        CreatePerfOverlay();
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        base._PhysicsProcess(delta);
+
+        // GameManager keeps running while paused (ProcessMode.Always), so check here
+        if (_isVotePhase || GetTree().Paused) return;
+
+        _enemyManager.Tick(delta);
+    }
+
+    private void CreatePerfOverlay()
+    {
+        _perfLabel = new Label
+        {
+            Position = new Vector2(12, 12),
+            Visible = OS.IsDebugBuild(),
+            ProcessMode = ProcessModeEnum.Always,
+        };
+        _perfLabel.AddThemeColorOverride("font_color", Colors.White);
+        _perfLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+        _perfLabel.AddThemeConstantOverride("outline_size", 4);
+        GetNode("/root/MainScene/HUD").CallDeferred(Node.MethodName.AddChild, _perfLabel);
+    }
+
+    private void UpdateDebugInput()
+    {
+        bool f3 = Input.IsPhysicalKeyPressed(Key.F3);
+        if (f3 && !_f3WasDown) _perfLabel.Visible = !_perfLabel.Visible;
+        _f3WasDown = f3;
+
+        bool f4 = Input.IsPhysicalKeyPressed(Key.F4);
+        if (f4 && !_f4WasDown) _stressTest = !_stressTest;
+        _f4WasDown = f4;
+
+        if (!_perfLabel.Visible) return;
+        double physicsMs = Performance.GetMonitor(Performance.Monitor.TimePhysicsProcess) * 1000;
+        double processMs = Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000;
+        _perfLabel.Text =
+            $"FPS {Engine.GetFramesPerSecond()}  |  Enemies {_enemyManager.Enemies.Count}/{MaxEnemies}\n" +
+            $"Physics {physicsMs:0.0} ms  |  Process {processMs:0.0} ms\n" +
+            $"F3 overlay  |  F4 stress test: {(_stressTest ? "ON" : "off")}";
     }
 
     public override void _Process(double delta)
     {
         base._Process(delta);
+
+        UpdateDebugInput();
 
         if (_isVotePhase) return;
 
@@ -75,17 +134,11 @@ public partial class GameManager : Node
 
         _enemySpawnTimeLeft -= delta;
         if (_enemySpawnTimeLeft > 0) return;
-        _enemySpawnTimeLeft = _enemyManager.SpawnDelay;
+        // Stress test spawns 15x faster, one enemy per tick, so spawns never pile into one frame
+        _enemySpawnTimeLeft = _stressTest ? _enemyManager.SpawnDelay / 15f : _enemyManager.SpawnDelay;
 
-        //int enemiesToSpawn = 15; // <-- This is a stress test value
-        int enemiesToSpawn = 1;
-        if (_enemyManager.Enemies.Count <= 200)
-        {
-            for (int i = 0; i < enemiesToSpawn; ++i)
-            {
-                _enemyManager.SpawnEnemy();
-            }
-        }
+        if (_enemyManager.Enemies.Count < MaxEnemies)
+            _enemyManager.SpawnEnemy();
     }
 
     private void LoadPowerups()
@@ -178,9 +231,16 @@ public partial class GameManager : Node
             (float)GD.RandRange(-1f, 1f)
             ).Normalized();
 
-    internal Enemy GetNearestEnemy() => _enemyManager.Enemies
-        .OrderBy(enemy => (Player.Position - enemy.Position).Length())
-        .FirstOrDefault();
+    internal Enemy GetNearestEnemy() => Player == null
+        ? null
+        : _enemyManager.GetNearestEnemy(Player.GlobalPosition, TargetSearchRange);
+
+    internal Enemy GetNearestEnemy(Vector3 origin, float maxRange) => _enemyManager.GetNearestEnemy(origin, maxRange);
+
+    internal Enemy GetEnemyInRadius(Vector3 origin, float radius) => _enemyManager.GetEnemyInRadius(origin, radius);
+
+    /// <summary>Fills results with every enemy touching the circle. Clear the list first.</summary>
+    internal void GetEnemiesInRadius(Vector3 origin, float radius, List<Enemy> results) => _enemyManager.GetEnemiesInRadius(origin, radius, results);
 
     internal int GetMaxXPPerLevel(int level) => Mathf.RoundToInt(Math.Log10(Math.Pow(level, 10) * 10) * 5);
 
