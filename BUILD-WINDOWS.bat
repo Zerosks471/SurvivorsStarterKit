@@ -1,14 +1,27 @@
 @echo off
 setlocal
 rem Echo Crypt - export a Windows test build
-rem Point GODOT at your Godot .NET console exe (the one ending in _console.exe)
-set "GODOT=%USERPROFILE%\Downloads\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
+rem Leave GODOT empty to search for Godot automatically,
+rem or paste the full path to your Godot .NET console exe between the quotes.
+set "GODOT="
+
+if not defined GODOT (
+  echo Looking for Godot 4.7 .NET...
+  for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%USERPROFILE%\Documents" "%OneDrive%\Desktop" "%OneDrive%\Documents" "C:\Godot" "%ProgramFiles%\Godot" "%LOCALAPPDATA%\Programs") do (
+    if not defined GODOT if exist "%%~D" (
+      for /f "delims=" %%G in ('where /r "%%~D" "Godot_v4.7*mono_win64_console.exe" 2^>nul') do if not defined GODOT set "GODOT=%%G"
+    )
+  )
+)
+
+if defined GODOT echo Using Godot: %GODOT%
 set "TEMPLATES=%APPDATA%\Godot\export_templates\4.7.2.stable.mono"
 
+if not defined GODOT set "GODOT=not found"
 if not exist "%GODOT%" (
-  echo Godot not found at:
-  echo   %GODOT%
-  echo Edit the GODOT line at the top of BUILD-WINDOWS.bat, then run it again.
+  echo Could not find Godot 4.7 .NET.
+  echo Find the file ending in _console.exe in your Godot folder, right-click it,
+  echo choose "Copy as path", and paste it into the GODOT line at the top of this file.
   pause
   exit /b 1
 )
