@@ -4,12 +4,11 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cx7nq7xvsmcux"
-path="res://.godot/imported/KayKit Animated Character_v1.2.fbx-506036f97b7677baf583fe30432b8e6b.scn"
+valid=false
 
 [deps]
 
 source_file="res://addons/kaykit_skeleton_pack/animation/fbx/KayKit Animated Character_v1.2.fbx"
-dest_files=["res://.godot/imported/KayKit Animated Character_v1.2.fbx-506036f97b7677baf583fe30432b8e6b.scn"]
 
 [params]
 
